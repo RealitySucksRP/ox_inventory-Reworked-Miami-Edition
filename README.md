@@ -8,23 +8,31 @@
   <a href="https://discord.gg/e9V3rPHySx"><img src="https://img.shields.io/badge/JOIN-DISCORD-5865F2?style=for-the-badge" alt="Join RealitySucksRP Discord"></a>
 </p>
 
-I love making FiveM scripts and running wild in GTA, but I also enjoy building complete servers. I use my own tested RealitySucksRP systems and configure server builds around the owner's gameplay, framework, economy, theme and direction.
+I love making FiveM scripts and running wild on GTA, but I also enjoy building complete servers. I use my own tested RealitySucksRP systems and configure server builds around the owner's gameplay, framework, economy, theme and direction.
 
 ## Miami Edition
 
-This is a modified distribution of `ox_inventory` by Overextended with a custom RealitySucksRP Miami Edition interface and additional compatibility, inventory and gameplay work.
+This is my modified distribution of `ox_inventory` by Overextended with a custom RealitySucksRP Miami Edition interface and additional compatibility, inventory and gameplay work.
 
-Highlights from the supplied Miami Edition build include:
+The goal is to keep the proven ox_inventory foundation while giving the inventory a more cinematic Miami-style presentation for modern RP servers.
+
+## Highlights
 
 - Miami-inspired cinematic inventory interface
 - Responsive single- and dual-pane layouts
 - Local/offline-safe NUI dependencies
-- Drag and drop, quick move, shops, stashes, trunks, gloveboxes and drops
-- Hotbar, notifications and metadata support
+- Drag and drop
+- Quick move
+- Shops
+- Stashes
+- Trunks and gloveboxes
+- Ground drops
+- Hotbar and notifications
+- Metadata support
 - Detailed hover cards with escaped metadata
 - Weapon inspection with serial, condition, tint and attachment information
-- Click-to-detach weapon component support
-- Resilient weapon-component removal when metadata and ped state drift
+- Click-to-detach weapon components
+- Resilient component removal when weapon metadata and ped state drift apart
 - Expanded item catalogue
 - Physical vehicle-key items
 - Cash-as-item support
@@ -32,14 +40,14 @@ Highlights from the supplied Miami Edition build include:
 
 ## Framework Support
 
-The supplied archive includes upstream bridge support for:
+The Miami Edition includes the upstream framework paths used by this ox_inventory base for:
 
 - Qbox / `qbx_core`
 - ESX
 - `ox_core`
 - `ND_Core`
 
-The Miami Edition was tested on a FiveM Enhanced server using Qbox, `qbx_core` and `ox_inventory` money-as-item configuration.
+This RealitySucksRP edition has also been tested in my FiveM Enhanced/Qbox environment with `qbx_core` and ox_inventory money-as-item configuration.
 
 ## Requirements
 
@@ -47,38 +55,44 @@ The Miami Edition was tested on a FiveM Enhanced server using Qbox, `qbx_core` a
 - OneSync
 - `oxmysql`
 - `ox_lib`
-- One of the supported frameworks above
+- One supported framework
 
-The resource folder must remain named `ox_inventory`.
+The resource folder must remain named:
 
-For physical cash as an inventory item, use the normal ox_inventory account configuration, for example:
+```text
+ox_inventory
+```
+
+For physical cash as an inventory item, ox_inventory can use its normal account configuration, for example:
 
 ```cfg
 set inventory:accounts ["money"]
 ```
 
-Use that only when your framework/economy is configured for money-as-item behavior.
+Only use money-as-item behavior when the rest of your framework and economy are configured for it.
 
-## Enhanced Resources
+## Enhanced RealitySucksRP Resources
 
-Browse RealitySucksRP resources currently listed for Enhanced compatibility/testing:
+I keep a separate Tebex category for RealitySucksRP resources that are currently listed for Enhanced compatibility/testing.
 
-**Tebex Enhanced:** https://reality-sucks-rp-webstore.tebex.io/category/enhanced
+**Enhanced Tebex:** https://reality-sucks-rp-webstore.tebex.io/category/enhanced
+
+**Full Store:** https://reality-sucks-rp-webstore.tebex.io/
+
+**Website:** https://realitysucksrp.github.io/
 
 ## Complete FiveM Servers For Sale
 
-Although I love building scripts and creating chaos in GTA, I also build complete FiveM servers.
+Although I love making scripts and creating chaos in GTA, I also enjoy making complete FiveM servers.
 
-I use tested RealitySucksRP systems and configure the stack around what the server owner actually wants.
+I use tested RealitySucksRP systems and configure each build around what the server owner actually wants — gameplay, framework, economy, theme and overall direction.
 
 - **QBCore Shell — $500**
 - **Zombie Server — $700**
 - **Full RP Server — $850**
 - **30 days of Discord setup/support included**
 
-**Website:** https://realitysucksrp.github.io/
-
-**Tebex:** https://reality-sucks-rp-webstore.tebex.io/
+**Server packages:** https://realitysucksrp.github.io/#packages
 
 **Discord:** https://discord.gg/e9V3rPHySx
 
@@ -90,7 +104,7 @@ The original `ox_inventory` project is Copyright (C) 2021-2026 Linden, Luke, Dun
 
 This RealitySucksRP modification remains subject to the upstream GPL-3.0 licence. Preserve the original copyright, licence, attribution and modification notices when redistributing modified source.
 
-The supplied archive also includes an asset-provenance notice explaining that GPL-3.0 applies to program source and does not automatically grant rights to independently created artwork.
+GPL-3.0 applies to the program source covered by that licence and does not automatically grant rights to independently created artwork or other separately licensed assets.
 
 ---
 
