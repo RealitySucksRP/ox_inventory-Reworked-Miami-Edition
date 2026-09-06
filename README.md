@@ -1,6 +1,7 @@
 # RealitySucksRP Miami Edition — ox_inventory
 
 ### Miami-inspired FiveM inventory rework built from ox_inventory
+<img width="2000" height="1125" alt="image" src="https://github.com/user-attachments/assets/a81f6022-cb5f-4359-9c70-0db17d11106e" />
 
 <p align="center">
   <a href="https://reality-sucks-rp-webstore.tebex.io/category/enhanced"><img src="https://img.shields.io/badge/EXPLORE-ENHANCED%20RESOURCES-ff6a00?style=for-the-badge" alt="Explore RealitySucksRP Enhanced resources on Tebex"></a>
