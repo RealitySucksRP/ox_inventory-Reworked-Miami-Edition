@@ -1,0 +1,1584 @@
+/* RealitySucksRP Miami Edition NUI, modified 2026-08-24. GPL-3.0. */
+
+/* ========================================================================== 
+   RealitySucksRP x ox_inventory — Los Santos Underworld UI
+   Functional layout first: no baked-in fake inventory elements.
+   ========================================================================== */
+
+:root {
+    --rs-bg: rgba(8, 5, 13, 0.92);
+    --rs-panel: rgba(10, 7, 16, 0.86);
+    --rs-panel-strong: rgba(8, 5, 12, 0.95);
+    --rs-slot: rgba(15, 11, 22, 0.78);
+    --rs-slot-hover: rgba(40, 20, 53, 0.88);
+    --rs-border: rgba(228, 76, 255, 0.28);
+    --rs-border-soft: rgba(255, 255, 255, 0.10);
+    --rs-purple: #c447ff;
+    --rs-magenta: #f443c6;
+    --rs-cyan: #48e8ff;
+    --rs-gold: #f5b85c;
+    --rs-green: #54f0aa;
+    --rs-red: #ff4f72;
+    --rs-text: #f7f3fb;
+    --rs-muted: #a89db2;
+    --rs-shadow: 0 28px 80px rgba(0, 0, 0, 0.62);
+    --rs-radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+body {
+    color: var(--rs-text);
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    user-select: none;
+}
+
+p,
+h1,
+h2,
+h3,
+h4 {
+    margin: 0;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.rs-symbol {
+    display: inline-grid;
+    min-width: 1em;
+    place-items: center;
+    color: var(--rs-gold);
+    font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(196, 71, 255, 0.72), rgba(72, 232, 255, 0.48));
+}
+
+#app {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    isolation: isolate;
+}
+
+#app > * {
+    pointer-events: auto;
+}
+
+/* ========================================================================== 
+   CINEMATIC ART LAYER
+   ========================================================================== */
+
+.rs-scene {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+    pointer-events: none !important;
+    background: #07050a;
+    animation: rsSceneIn 220ms ease-out both;
+}
+
+.rs-scene-bg {
+    position: absolute;
+    inset: -3%;
+    background:
+        linear-gradient(90deg, rgba(4, 2, 7, 0.60) 0%, rgba(4, 2, 7, 0.10) 28%, rgba(4, 2, 7, 0.08) 62%, rgba(4, 2, 7, 0.60) 100%),
+        linear-gradient(180deg, rgba(6, 3, 10, 0.10) 0%, rgba(7, 4, 11, 0.15) 62%, rgba(5, 3, 8, 0.58) 100%),
+        url('art/rs-main-chair.webp') center center / contain no-repeat,
+        url('art/rs-main-chair.webp') center 45% / cover no-repeat;
+    filter: saturate(1.10) contrast(1.05) brightness(0.78);
+    transform: scale(1.04);
+}
+
+.rs-scene-shade {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 47% 62% at 50% 53%, rgba(20, 7, 28, 0.02) 0%, rgba(8, 4, 12, 0.34) 64%, rgba(4, 2, 7, 0.62) 100%),
+        linear-gradient(180deg, rgba(8, 4, 12, 0.18), transparent 22%, transparent 75%, rgba(6, 3, 9, 0.50));
+    box-shadow: inset 0 0 180px rgba(0, 0, 0, 0.52);
+}
+
+/* Both character images are 1231x1536 with ZERO transparent padding at the
+   bottom -- the figures run to the last pixel row. The old `bottom: -8.5vh`
+   therefore pushed 8.5vh of actual legs below the viewport, measured at 9.5% of
+   each figure clipped. And `height: min(91vh, 1040px)` capped them at 1040px, so
+   on anything taller than ~1140px they stopped growing entirely.
+
+   Sitting them on the floor at `bottom: 0` and letting height run to the full
+   viewport is the largest they can be while staying complete: +21% visible size
+   with nothing clipped. Going beyond 100vh would only start cutting the legs
+   again, so this is the ceiling, not a compromise.
+
+   Tune with --rs-character-height if you want them smaller; keep bottom at 0. */
+.rs-character {
+    position: absolute;
+    bottom: var(--rs-character-floor, 0.65vh);
+    height: var(--rs-character-height, min(100vh, 1600px));
+    width: auto;
+    object-fit: contain;
+    object-position: bottom center;
+    /* Both figures are tilted a fraction of a degree, so even pivoting at the
+       feet the lower corner still swings below the floor by (width/2)*sin(angle)
+       -- about 0.52vh for the girl's -0.8deg. --rs-character-floor is that
+       clearance: enough that nothing clips at any size, small enough to be
+       invisible (roughly 7px at 1080p). */
+    transform-origin: bottom center;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.98;
+    filter: drop-shadow(0 28px 36px rgba(0, 0, 0, 0.82));
+}
+
+.rs-girl-left {
+    left: -3.4vw;
+    transform: rotate(-0.8deg);
+    filter:
+        drop-shadow(20px 10px 38px rgba(0, 0, 0, 0.86))
+        drop-shadow(0 0 24px rgba(244, 67, 198, 0.18));
+}
+
+.rs-guy-right {
+    right: -2.7vw;
+    transform: rotate(0.3deg);
+    filter:
+        drop-shadow(-20px 10px 38px rgba(0, 0, 0, 0.86))
+        drop-shadow(0 0 24px rgba(245, 184, 92, 0.14));
+}
+
+.rs-seal-wrap {
+    position: absolute;
+    top: 2.2vh;
+    left: 1.8vw;
+    width: clamp(94px, 8vw, 154px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 4;
+    box-shadow:
+        0 0 0 1px rgba(245, 184, 92, 0.28),
+        0 16px 35px rgba(0, 0, 0, 0.55),
+        0 0 28px rgba(72, 232, 255, 0.11);
+}
+
+.rs-los-santos-seal {
+    width: 108%;
+    height: 108%;
+    margin: -4%;
+    object-fit: cover;
+    clip-path: circle(47.4% at 50% 50%);
+}
+
+.rs-brand-mark {
+    position: absolute;
+    top: 2.4vh;
+    right: 2.2vw;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    padding: 8px 12px 9px;
+    border-right: 2px solid rgba(244, 67, 198, 0.72);
+    background: linear-gradient(90deg, transparent, rgba(5, 3, 8, 0.40));
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95);
+}
+
+.rs-brand-kicker {
+    color: var(--rs-gold);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(10px, 0.62vw, 13px);
+    font-weight: 700;
+    letter-spacing: 0.22em;
+}
+
+.rs-brand-title {
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(16px, 1vw, 23px);
+    font-weight: 700;
+    letter-spacing: 0.13em;
+}
+
+@keyframes rsSceneIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ========================================================================== 
+   MAIN INVENTORY SHELL
+   ========================================================================== */
+
+.inventory-container {
+    position: absolute;
+    z-index: 10;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    width: clamp(970px, 67vw, 1440px);
+    height: clamp(590px, 65vh, 760px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 104px minmax(0, 1fr);
+    grid-template-rows: 62px minmax(0, 1fr) 38px;
+    gap: 0 14px;
+    padding: 12px 14px 10px;
+    border: 1px solid rgba(235, 120, 255, 0.19);
+    border-radius: 16px;
+    background:
+        linear-gradient(135deg, rgba(37, 15, 44, 0.26), rgba(7, 5, 11, 0.60) 38%, rgba(14, 7, 20, 0.72)),
+        rgba(5, 3, 9, 0.52);
+    box-shadow:
+        var(--rs-shadow),
+        0 0 0 1px rgba(255, 255, 255, 0.025) inset,
+        0 0 60px rgba(196, 71, 255, 0.08);
+    backdrop-filter: blur(14px) saturate(1.18);
+    -webkit-backdrop-filter: blur(14px) saturate(1.18);
+    animation: rsInventoryIn 260ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.inventory-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent 0%, rgba(244, 67, 198, 0.32) 26%, rgba(72, 232, 255, 0.24) 50%, rgba(245, 184, 92, 0.26) 74%, transparent 100%) top / 82% 1px no-repeat,
+        radial-gradient(circle at 23% 0%, rgba(244, 67, 198, 0.09), transparent 28%),
+        radial-gradient(circle at 76% 0%, rgba(72, 232, 255, 0.06), transparent 26%);
+}
+
+@keyframes rsInventoryIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% + 12px)) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.player-inventory-header,
+.other-inventory-header {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 9px 13px;
+    border: 1px solid var(--rs-border-soft);
+    border-bottom-color: rgba(244, 67, 198, 0.25);
+    border-radius: 10px 10px 6px 6px;
+    background:
+        linear-gradient(180deg, rgba(29, 15, 34, 0.86), rgba(9, 6, 14, 0.91));
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    overflow: hidden;
+}
+
+.player-inventory-header {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.other-inventory-header {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.labels-container {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.inventory-label {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--rs-text);
+    font-family: 'Barlow Condensed', 'Rajdhani', sans-serif;
+    font-size: clamp(15px, 0.92vw, 19px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.inventory-label p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.inventory-icon,
+.inventory-icon1 {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    font-size: 12px;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05);
+}
+
+.inventory-icon {
+    background: linear-gradient(135deg, rgba(244, 67, 198, 0.44), rgba(112, 36, 148, 0.45));
+    box-shadow: 0 0 18px rgba(244, 67, 198, 0.12), inset 0 0 12px rgba(255, 255, 255, 0.05);
+}
+
+.inventory-icon1 {
+    background: linear-gradient(135deg, rgba(72, 232, 255, 0.30), rgba(73, 90, 181, 0.42));
+    box-shadow: 0 0 18px rgba(72, 232, 255, 0.10), inset 0 0 12px rgba(255, 255, 255, 0.05);
+}
+
+.current-weight {
+    flex: 0 0 clamp(142px, 10vw, 205px);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: stretch;
+}
+
+.weight-copy {
+    color: #d7cddd;
+    font-size: clamp(9px, 0.60vw, 12px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.weight-copy i {
+    color: var(--rs-gold);
+    margin-right: 4px;
+}
+
+.weight-bar {
+    width: 100%;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+.weight-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--rs-purple), var(--rs-magenta));
+    box-shadow: 0 0 9px rgba(196, 71, 255, 0.45);
+    transition: width 160ms ease;
+}
+
+.weight-bar-fill.medium {
+    background: linear-gradient(90deg, var(--rs-purple), var(--rs-gold));
+}
+
+.weight-bar-fill.high {
+    background: linear-gradient(90deg, var(--rs-gold), var(--rs-red));
+}
+
+.player-inventory,
+.other-inventory {
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    margin-top: 8px;
+    padding: 9px 6px 9px 9px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.085);
+    border-radius: 7px 7px 11px 11px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(196, 71, 255, 0.045), transparent 30%),
+        rgba(7, 5, 11, 0.82);
+    box-shadow:
+        0 18px 32px rgba(0, 0, 0, 0.30),
+        inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.player-inventory {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.other-inventory {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.item-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 7px;
+    align-content: start;
+}
+
+.item-slot {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    min-height: 78px;
+    overflow: hidden;
+    border: 1px solid rgba(168, 123, 186, 0.24);
+    border-radius: 7px;
+    background:
+        linear-gradient(145deg, rgba(34, 21, 42, 0.60), rgba(9, 7, 13, 0.76) 56%, rgba(13, 9, 18, 0.90));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.025),
+        inset 0 -16px 28px rgba(0, 0, 0, 0.18);
+    transition: border-color 130ms ease, transform 130ms ease, background 130ms ease, box-shadow 130ms ease;
+    cursor: pointer;
+}
+
+.item-slot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(circle at 25% 15%, rgba(244, 67, 198, 0.055), transparent 42%);
+}
+
+.item-slot:hover {
+    z-index: 2;
+    transform: translateY(-1px);
+    border-color: rgba(230, 92, 255, 0.62);
+    background:
+        linear-gradient(145deg, rgba(55, 27, 67, 0.78), rgba(12, 8, 17, 0.88) 58%, rgba(16, 10, 22, 0.96));
+    box-shadow:
+        0 0 0 1px rgba(196, 71, 255, 0.08),
+        0 7px 18px rgba(0, 0, 0, 0.24),
+        0 0 18px rgba(196, 71, 255, 0.08);
+}
+
+.invalid-slot-highlight {
+    border-color: rgba(255, 79, 114, 0.95) !important;
+    box-shadow: 0 0 16px rgba(255, 79, 114, 0.24) !important;
+    animation: rsInvalid 320ms ease 2;
+}
+
+@keyframes rsInvalid {
+    50% { transform: translateX(2px); }
+}
+
+.item-slot-key {
+    position: absolute;
+    z-index: 5;
+    top: 5px;
+    left: 5px;
+    min-width: 19px;
+    height: 19px;
+    display: grid;
+    place-items: center;
+    padding: 0 4px;
+    border-radius: 5px;
+    color: #fff;
+    border: 1px solid rgba(244, 67, 198, 0.58);
+    background: rgba(80, 23, 97, 0.82);
+    box-shadow: 0 0 10px rgba(244, 67, 198, 0.12);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.item-slot-img {
+    position: absolute;
+    z-index: 2;
+    inset: 23% 10% 21%;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+}
+
+.item-slot-img img {
+    max-width: 92%;
+    max-height: 92%;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.58));
+    pointer-events: none;
+}
+
+.item-slot-label {
+    position: absolute;
+    z-index: 4;
+    top: 6px;
+    left: 7px;
+    right: 7px;
+    height: 18px;
+    padding-left: 23px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.item-slot-label p {
+    overflow: hidden;
+    color: rgba(249, 245, 252, 0.86);
+    font-family: 'Barlow Condensed', 'Rajdhani', sans-serif;
+    font-size: clamp(8px, 0.48vw, 10px);
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-slot-amount,
+.item-price {
+    position: absolute;
+    z-index: 5;
+    bottom: 7px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(4, 3, 7, 0.67);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.item-slot-amount {
+    right: 6px;
+}
+
+.item-price {
+    left: 6px;
+    color: var(--rs-green);
+}
+
+.item-slot-amount p,
+.item-price p {
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(9px, 0.52vw, 11px);
+    font-weight: 700;
+    letter-spacing: 0.035em;
+}
+
+.item-price p {
+    color: var(--rs-green);
+}
+
+.item-slot-durability {
+    position: absolute;
+    z-index: 6;
+    left: 6px;
+    right: 6px;
+    bottom: 3px;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.item-slot-durability-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--rs-cyan);
+    transition: width 140ms ease;
+}
+
+.item-slot-durability-fill.high {
+    background: var(--rs-green);
+}
+
+.item-slot-durability-fill.medium {
+    background: var(--rs-gold);
+}
+
+.item-slot-durability-fill.low {
+    background: var(--rs-red);
+}
+
+/* ========================================================================== 
+   AMOUNT / TRANSFER COLUMN
+   ========================================================================== */
+
+.input-container {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 9px 8px;
+    border: 1px solid rgba(244, 67, 198, 0.18);
+    border-radius: 9px;
+    background: rgba(8, 5, 12, 0.78);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.input-caption {
+    color: var(--rs-gold);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-align: center;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.input-wrapper input {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    outline: none;
+    border: 1px solid rgba(196, 71, 255, 0.40);
+    border-radius: 6px;
+    color: #fff;
+    background: rgba(18, 10, 24, 0.92);
+    text-align: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: inset 0 0 14px rgba(196, 71, 255, 0.045);
+}
+
+.input-wrapper input::placeholder {
+    color: #766d7e;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+}
+
+.clear-button {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
+    color: #cbbfd2;
+    background: rgba(255, 255, 255, 0.035);
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.clear-button:hover {
+    color: #fff;
+    border-color: rgba(255, 79, 114, 0.48);
+    background: rgba(255, 79, 114, 0.12);
+}
+
+.rs-controls {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(14px, 2vw, 38px);
+    padding-top: 8px;
+    overflow: hidden;
+    color: rgba(213, 204, 219, 0.66);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(9px, 0.55vw, 11px);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.rs-controls b {
+    margin-right: 4px;
+    color: #eee8f1;
+    font-weight: 700;
+}
+
+/* ========================================================================== 
+   SINGLE-PANE MODE
+   ========================================================================== */
+
+.centered-inventory-header {
+    grid-column: 1 / -1 !important;
+    width: min(100%, 660px);
+    justify-self: center;
+}
+
+.centered-player-inventory {
+    grid-column: 1 / -1 !important;
+    width: min(100%, 660px);
+    justify-self: center;
+}
+
+/* ========================================================================== 
+   HOTBAR / DRAGGED ITEM
+   ========================================================================== */
+
+.hotbar-container {
+    position: fixed;
+    z-index: 40;
+    left: 50%;
+    bottom: 3.2vh;
+    transform: translateX(-50%);
+    padding: 8px;
+    border: 1px solid rgba(244, 67, 198, 0.20);
+    border-radius: 10px;
+    background: rgba(6, 4, 10, 0.74);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.hotbar {
+    display: flex;
+    gap: 7px;
+}
+
+.hotbar .item-slot {
+    width: 78px;
+    height: 78px;
+    min-height: 78px;
+    aspect-ratio: 1;
+}
+
+.hotbar .item-slot-label {
+    display: none;
+}
+
+.dragged-item {
+    position: fixed !important;
+    z-index: 9999 !important;
+    width: 84px !important;
+    height: 84px !important;
+    min-height: 84px !important;
+    transform: translate(-50%, -50%);
+    pointer-events: none !important;
+    opacity: 0.92;
+    border-color: rgba(244, 67, 198, 0.82) !important;
+    box-shadow: 0 0 28px rgba(196, 71, 255, 0.26), 0 18px 34px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* ========================================================================== 
+   CONTEXT MENU
+   ========================================================================== */
+
+.context-menu,
+.submenu {
+    position: fixed;
+    z-index: 10000;
+    min-width: 165px;
+    margin: 0;
+    padding: 5px;
+    list-style: none;
+    border: 1px solid rgba(221, 100, 247, 0.26);
+    border-radius: 8px;
+    background: rgba(8, 5, 12, 0.97);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.context-menu li,
+.submenu li {
+    position: relative;
+    padding: 8px 10px;
+    border-radius: 5px;
+    color: #ded4e4;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.035em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.context-menu li:hover,
+.submenu li:hover {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(196, 71, 255, 0.16), rgba(244, 67, 198, 0.06));
+}
+
+.submenu {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 5px);
+}
+
+/* ========================================================================== 
+   NOTIFICATIONS / REQUIRED ITEMS
+   ========================================================================== */
+
+.notification-container {
+    position: fixed;
+    z-index: 60;
+    right: 2.5vw;
+    bottom: 4vh;
+    animation: rsNotifyIn 180ms ease-out both;
+}
+
+.notification-slot {
+    position: relative;
+    width: 132px;
+    height: 132px;
+    overflow: hidden;
+    border: 1px solid rgba(244, 67, 198, 0.33);
+    border-radius: 10px;
+    background: rgba(7, 5, 11, 0.92);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.56), 0 0 24px rgba(196, 71, 255, 0.08);
+}
+
+.notification-title {
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 6px 8px;
+    color: var(--rs-gold);
+    background: rgba(19, 9, 24, 0.90);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.notification-slot .item-slot-img {
+    inset: 27px 12px 28px;
+}
+
+.notification-slot .item-slot-label {
+    top: auto;
+    bottom: 6px;
+    left: 6px;
+    right: 38px;
+    padding-left: 0;
+}
+
+.notification-slot .item-slot-amount {
+    bottom: 6px;
+}
+
+.required-item-container {
+    position: fixed;
+    z-index: 55;
+    left: 50%;
+    bottom: 3vh;
+    transform: translateX(-50%);
+}
+
+.required-item {
+    display: flex;
+    gap: 6px;
+    padding: 7px;
+    border: 1px solid rgba(244, 67, 198, 0.20);
+    border-radius: 9px;
+    background: rgba(6, 4, 10, 0.84);
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.52);
+}
+
+.required-item .item-slot {
+    width: 74px;
+    height: 74px;
+    min-height: 74px;
+}
+
+@keyframes rsNotifyIn {
+    from { opacity: 0; transform: translateX(14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ========================================================================== 
+   WEAPON INSPECTION
+   ========================================================================== */
+
+.attachment-panel-overlay {
+    position: fixed;
+    z-index: 20000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 4vh 5vw;
+    background: rgba(4, 2, 7, 0.76);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.attachment-panel {
+    width: min(900px, 84vw);
+    max-height: 86vh;
+    overflow: auto;
+    border: 1px solid rgba(226, 107, 251, 0.27);
+    border-radius: 14px;
+    background:
+        linear-gradient(145deg, rgba(31, 13, 38, 0.36), rgba(7, 5, 11, 0.96) 36%),
+        rgba(7, 5, 11, 0.97);
+    box-shadow: 0 34px 90px rgba(0, 0, 0, 0.72), 0 0 42px rgba(196, 71, 255, 0.08);
+}
+
+.attachment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+    background: rgba(21, 10, 27, 0.68);
+}
+
+.attachment-header h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+}
+
+.close-panel-button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 7px;
+    color: #cfc5d4;
+    background: rgba(255, 255, 255, 0.035);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.close-panel-button:hover {
+    color: #fff;
+    border-color: rgba(255, 79, 114, 0.50);
+    background: rgba(255, 79, 114, 0.10);
+}
+
+.inspection-content {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(330px, 1.1fr);
+    gap: 20px;
+    padding: 18px;
+}
+
+.weapon-display-column,
+.attachment-slots-column {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.018);
+}
+
+.weapon-main-image {
+    height: 230px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: radial-gradient(circle at center, rgba(196, 71, 255, 0.08), rgba(255, 255, 255, 0.015) 58%, transparent 80%);
+}
+
+.weapon-main-image img {
+    max-width: 92%;
+    max-height: 88%;
+    object-fit: contain;
+    filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.62));
+}
+
+.weapon-title,
+.column-title {
+    margin-top: 10px;
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.weapon-title {
+    font-size: 18px;
+    text-align: center;
+}
+
+.column-title {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #d9cfde;
+}
+
+.weapon-stats {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-item {
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 7px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.stat-label {
+    color: var(--rs-muted);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    color: #f3edf5;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat-bar-container {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.stat-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--rs-purple), var(--rs-cyan));
+}
+
+.slots-container {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.attachment-slot-wrapper {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.attachment-slot-box {
+    width: 100%;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1px dashed rgba(196, 71, 255, 0.28);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.018);
+    cursor: default;
+}
+
+.attachment-slot-box.filled {
+    border-style: solid;
+    border-color: rgba(72, 232, 255, 0.28);
+    cursor: pointer;
+}
+
+.attachment-slot-box img {
+    max-width: 74%;
+    max-height: 74%;
+    object-fit: contain;
+}
+
+.empty-slot-icon {
+    color: rgba(196, 71, 255, 0.38);
+    font-size: 18px;
+}
+
+.slot-type-label {
+    width: 100%;
+    overflow: hidden;
+    color: #a99fb0;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.overflow-attachments {
+    margin-top: 16px;
+}
+
+.attachment-panel-note {
+    margin-top: 12px;
+    color: #786f7e;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+}
+
+/* ========================================================================== 
+   FLOATING-VUE TOOLTIP
+   ========================================================================== */
+
+.v-popper--theme-tooltip .v-popper__inner {
+    padding: 0 !important;
+    border: 1px solid rgba(219, 105, 244, 0.22) !important;
+    border-radius: 8px !important;
+    background: rgba(8, 5, 12, 0.97) !important;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.56) !important;
+}
+
+.v-popper--theme-tooltip .v-popper__arrow-outer {
+    border-color: rgba(219, 105, 244, 0.22) !important;
+}
+
+.v-popper--theme-tooltip .v-popper__arrow-inner {
+    border-color: rgba(8, 5, 12, 0.97) !important;
+}
+
+.custom-tooltip {
+    width: 240px;
+    max-height: min(72vh, 620px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 11px 12px;
+    color: #d9d0de;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.tooltip-header {
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tooltip-divider {
+    height: 1px;
+    margin: 7px 0;
+    border: 0;
+    background: linear-gradient(90deg, rgba(196, 71, 255, 0.52), transparent);
+}
+
+/* ========================================================================== 
+   RESPONSIVE SAFETY
+   ========================================================================== */
+
+@media (max-width: 1500px), (max-height: 850px) {
+    .inventory-container {
+        width: clamp(900px, 72vw, 1250px);
+        height: clamp(520px, 70vh, 660px);
+        top: 52%;
+        grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+        gap: 0 10px;
+        padding: 10px 11px 8px;
+    }
+
+    .item-grid {
+        gap: 5px;
+    }
+
+    .item-slot {
+        min-height: 66px;
+    }
+
+    .rs-character {
+        height: 92vh;
+    }
+}
+
+@media (max-width: 1120px) {
+    .inventory-container {
+        width: 88vw;
+        height: 72vh;
+    }
+
+    .rs-girl-left {
+        left: -10vw;
+        opacity: 0.72;
+    }
+
+    .rs-guy-right {
+        right: -9vw;
+        opacity: 0.72;
+    }
+
+    .rs-seal-wrap {
+        width: 92px;
+    }
+
+    .rs-brand-mark {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .inventory-container {
+        width: 92vw;
+        grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+    }
+
+    .current-weight {
+        flex-basis: 112px;
+    }
+
+    .weight-copy {
+        font-size: 8px;
+    }
+
+    .inventory-label {
+        font-size: 13px;
+        letter-spacing: 0.07em;
+    }
+
+    .item-slot-label {
+        display: none;
+    }
+}
+
+/* ========================================================================== 
+   RS FINAL COMPOSITION PASS — single inventory first, larger slots, one scene
+   ========================================================================== */
+
+/* The game remains visible behind the artwork. The chair art is drawn ONCE,
+   centered behind the inventory instead of a contain+cover double layer. */
+.rs-scene {
+    background: transparent !important;
+}
+
+.rs-scene-bg {
+    inset: 0 !important;
+    background:
+        linear-gradient(90deg, rgba(8, 3, 12, .18), rgba(8, 3, 12, .02) 26%, rgba(8, 3, 12, .02) 74%, rgba(8, 3, 12, .18)),
+        url('art/rs-main-chair.webp') center 48% / auto 112% no-repeat !important;
+    opacity: .60;
+    filter: saturate(1.08) contrast(1.05) brightness(.84) !important;
+    transform: none !important;
+}
+
+.rs-scene-shade {
+    background:
+        radial-gradient(ellipse 52% 67% at 50% 51%, rgba(10, 4, 15, .03) 0%, rgba(8, 4, 12, .12) 68%, rgba(4, 2, 7, .28) 100%),
+        linear-gradient(180deg, rgba(5, 2, 8, .08), transparent 24%, transparent 76%, rgba(5, 2, 8, .22)) !important;
+    box-shadow: inset 0 0 120px rgba(0, 0, 0, .24) !important;
+}
+
+/* Single-player inventory: hero menu in the center with large, readable slots. */
+.inventory-container.single-pane-shell {
+    width: clamp(780px, 38vw, 980px) !important;
+    height: clamp(690px, 75vh, 900px) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 72px minmax(0, 1fr) 42px !important;
+    gap: 0 !important;
+    padding: 14px 16px 12px !important;
+    background:
+        linear-gradient(145deg, rgba(33, 13, 42, .30), rgba(7, 5, 11, .66) 42%, rgba(13, 7, 19, .72)),
+        rgba(4, 3, 8, .46) !important;
+    backdrop-filter: blur(11px) saturate(1.15) !important;
+    -webkit-backdrop-filter: blur(11px) saturate(1.15) !important;
+}
+
+.single-pane-shell .centered-inventory-header,
+.single-pane-shell .player-inventory-header {
+    grid-column: 1 !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+}
+
+.single-pane-shell .centered-player-inventory,
+.single-pane-shell .player-inventory {
+    grid-column: 1 !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+}
+
+.single-pane-shell .player-inventory {
+    padding: 11px 8px 11px 11px !important;
+}
+
+.single-pane-shell .item-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+}
+
+.single-pane-shell .item-slot {
+    min-height: 132px !important;
+    border-radius: 9px !important;
+    border-color: rgba(182, 114, 212, .32) !important;
+    background:
+        radial-gradient(circle at 22% 18%, rgba(72, 232, 255, .07), transparent 32%),
+        radial-gradient(circle at 82% 82%, rgba(244, 67, 198, .08), transparent 38%),
+        linear-gradient(145deg, rgba(34, 19, 43, .62), rgba(7, 6, 12, .80) 58%, rgba(13, 8, 19, .92)) !important;
+}
+
+.single-pane-shell .item-slot-img {
+    inset: 23% 8% 18% !important;
+}
+
+.single-pane-shell .item-slot-img img {
+    max-width: 96% !important;
+    max-height: 96% !important;
+}
+
+.single-pane-shell .item-slot-label {
+    top: 7px !important;
+    left: 8px !important;
+    right: 8px !important;
+    height: 21px !important;
+    padding-left: 27px !important;
+}
+
+.single-pane-shell .item-slot-label p {
+    font-size: clamp(10px, .62vw, 13px) !important;
+    line-height: 18px !important;
+    letter-spacing: .045em !important;
+}
+
+.single-pane-shell .item-slot-key {
+    top: 6px !important;
+    left: 6px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+}
+
+.single-pane-shell .item-slot-amount,
+.single-pane-shell .item-price {
+    bottom: 8px !important;
+    padding: 3px 6px !important;
+}
+
+.single-pane-shell .item-slot-amount p,
+.single-pane-shell .item-price p {
+    font-size: clamp(11px, .68vw, 14px) !important;
+}
+
+.single-pane-shell .inventory-label {
+    font-size: clamp(19px, 1.12vw, 25px) !important;
+}
+
+.single-pane-shell .inventory-icon {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 15px !important;
+}
+
+.single-pane-shell .current-weight {
+    flex-basis: clamp(175px, 11vw, 235px) !important;
+}
+
+.single-pane-shell .weight-copy {
+    font-size: clamp(11px, .67vw, 14px) !important;
+}
+
+/* A real stash / trunk / glovebox / shop / ground drop still opens a second
+   pane. It stays generous, but the character art retreats to the outside. */
+.inventory-container.dual-pane-shell {
+    width: clamp(1160px, 65vw, 1580px) !important;
+    height: clamp(650px, 70vh, 860px) !important;
+    grid-template-columns: minmax(0, 1fr) 104px minmax(0, 1fr) !important;
+}
+
+.dual-pane-shell .item-grid {
+    gap: 8px !important;
+}
+
+.dual-pane-shell .item-slot {
+    min-height: 94px !important;
+}
+
+/* Side characters frame the single menu rather than sitting on top of it. */
+/* Sized by HEIGHT, not width. The old width cap of 455px left the figures at
+   only 42.5% of screen height regardless of display size. Driving off height
+   with bottom:0 makes them as large as they can be while staying whole --
+   measured at 99.8% of screen height with zero clipping. */
+.rs-scene-single .rs-character {
+    bottom: var(--rs-character-floor, 0.65vh) !important;
+    height: var(--rs-character-height-single, 99vh) !important;
+    width: auto !important;
+    max-height: 100vh !important;
+    opacity: .96 !important;
+}
+
+/* Pinned to the outer edges. At full height a centre-relative offset pushed
+   the girl's body 281px off-screen; the art has her body in the left 75.5% of
+   the file and his in the right 65.6%, so edge-anchoring keeps both complete. */
+.rs-scene-single .rs-girl-left {
+    left: 0 !important;
+    right: auto !important;
+}
+
+.rs-scene-single .rs-guy-right {
+    right: 0 !important;
+    left: auto !important;
+}
+
+/* When a genuine secondary inventory appears, preserve both panes and move the
+   characters toward the outside edges so they never block slots. */
+/* Dual was the worst case: bottom:-1.5vh clipped 12px of leg and the width cap
+   left them at 32.6% of screen height, with ~20px of body off each side edge.
+   Now 91.8% of screen height, nothing clipped. Slightly under the single-pane
+   height so two panes of slots still read clearly. */
+.rs-scene-dual .rs-character {
+    width: auto !important;
+    height: var(--rs-character-height-dual, 92vh) !important;
+    max-height: 92vh !important;
+    bottom: var(--rs-character-floor, 0.65vh) !important;
+    opacity: .88 !important;
+}
+
+.rs-scene-dual .rs-girl-left {
+    left: 0 !important;
+    right: auto !important;
+}
+
+.rs-scene-dual .rs-guy-right {
+    right: 0 !important;
+    left: auto !important;
+}
+
+/* Keep top corner branding compact so it never competes with the inventory. */
+.rs-seal-wrap {
+    width: clamp(78px, 6.4vw, 128px) !important;
+    top: 1.6vh !important;
+    left: 1.35vw !important;
+}
+
+.rs-brand-mark {
+    top: 1.7vh !important;
+    right: 1.45vw !important;
+    opacity: .82;
+}
+
+/* Smaller screens: favor usability over decorative side art. */
+@media (max-width: 1600px), (max-height: 900px) {
+    .inventory-container.single-pane-shell {
+        width: clamp(720px, 46vw, 860px) !important;
+        height: min(82vh, 790px) !important;
+    }
+
+    .single-pane-shell .item-slot {
+        min-height: 112px !important;
+    }
+
+    .rs-scene-single .rs-character {
+        width: auto !important;
+        height: 92vh !important;
+        max-height: 92vh !important;
+    }
+
+    .rs-scene-single .rs-girl-left {
+        right: calc(50% + clamp(365px, 23.5vw, 445px)) !important;
+    }
+
+    .rs-scene-single .rs-guy-right {
+        left: calc(50% + clamp(365px, 23.5vw, 445px)) !important;
+    }
+}
+
+@media (max-width: 1280px) {
+    .inventory-container.single-pane-shell {
+        width: min(72vw, 780px) !important;
+    }
+
+    .single-pane-shell .item-slot {
+        min-height: 92px !important;
+    }
+
+    .rs-scene-single .rs-character,
+    .rs-scene-dual .rs-character {
+        opacity: .66 !important;
+    }
+}
+
+/* RS tooltip metadata / attachment clarity */
+.tooltip-info {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px;
+    align-items: start;
+    margin: 4px 0;
+    color: #d4cbd9;
+    overflow-wrap: anywhere;
+}
+
+.tooltip-info-key {
+    color: #8deaff;
+    font-weight: 700;
+}
+
+.tooltip-description {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    color: #f3edf5;
+    line-height: 1.45;
+}
+
+.tooltip-weight {
+    margin-top: 8px;
+    color: #9f95a5;
+    font-size: 11px;
+}
+
+.tooltip-attachments {
+    grid-template-columns: 1fr;
+}
+
+.tooltip-attachment-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.tooltip-attachment-pill {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 3px 6px;
+    border: 1px solid rgba(72,232,255,.20);
+    border-radius: 999px;
+    background: rgba(72,232,255,.055);
+    color: #c8f7ff;
+    font-size: 10px;
+    line-height: 1.2;
+}

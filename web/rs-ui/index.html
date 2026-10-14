@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<!-- RealitySucksRP Miami Edition NUI, 2026. GPL-3.0. -->
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RealitySucksRP Inventory</title>
+        <link rel="stylesheet" href="main.css" />
+        <link rel="stylesheet" href="vendor/floating-vue.css" />
+        <!--
+            Vendored locally, NOT from a CDN. NUI cannot be relied on to reach
+            the internet, and when axios failed to load the adapter had nothing
+            to hook: every axios.post fell through to the real
+            https://qb-inventory/... endpoint, which does not exist on this
+            server. That killed weapon attachments (GetWeaponData /
+            RemoveAttachment) and spammed "Trying to request file from resource
+            qb-inventory". A missing floating-vue also removed every hover
+            tooltip. Load order below is required: vue -> floating-ui core ->
+            floating-ui dom -> floating-vue -> axios -> adapter -> app.
+        -->
+        <script src="vendor/vue.global.prod.js"></script>
+        <script src="vendor/floating-ui.core.js"></script>
+        <script src="vendor/floating-ui.dom.js"></script>
+        <script src="vendor/floating-vue.umd.js"></script>
+        <script src="vendor/axios.min.js"></script>
+        <script src="image-aliases.js"></script>
+        <script src="rs-ox-adapter.js"></script>
+        <script src="app.js" defer></script>
+    </head>
+    <body>
+
+        <div id="app">
+            <!-- RealitySucksRP cinematic inventory scene -->
+            <div class="rs-scene" :class="{ 'rs-scene-single': isOtherInventoryEmpty, 'rs-scene-dual': !isOtherInventoryEmpty }" v-if="isInventoryOpen" aria-hidden="true">
+                <div class="rs-scene-bg"></div>
+                <div class="rs-scene-shade"></div>
+                <img class="rs-character rs-girl-left" src="art/rs-girl-left.webp" alt="" />
+                <img class="rs-character rs-guy-right" src="art/rs-guy-right.webp" alt="" />
+                <div class="rs-seal-wrap">
+                    <img class="rs-los-santos-seal" src="art/rs-los-santos-seal.webp" alt="" />
+                </div>
+                <div class="rs-brand-mark">
+                    <span class="rs-brand-kicker">REALITYSUCKSRP</span>
+                    <span class="rs-brand-title">CITY INVENTORY</span>
+                </div>
+            </div>
+
+<div class="inventory-container" :class="{ 'single-pane-shell': isOtherInventoryEmpty, 'dual-pane-shell': !isOtherInventoryEmpty }" v-if="isInventoryOpen" @mousemove="drag" @mouseup="endDrag" @mousedown="containerMouseDownAction">
+
+                <!-- TOPBAR - logo + weight -->
+                <div class="player-inventory-header" :class="{ 'centered-inventory-header': shouldCenterInventory }">
+                    <div class="labels-container">
+                        <div class="inventory-label">
+                            <span class="inventory-icon"><span class="rs-symbol" aria-hidden="true">◆</span></span>
+                            {{ inventoryLabel }}
+                        </div>
+                        <div class="current-weight">
+                            <div class="weight-copy"><span class="rs-symbol" aria-hidden="true">⚖</span> {{ rsWeightValue(playerWeight, 1) }} / {{ rsWeightValue(maxWeight, 1) }} {{ rsWeightUnit().toUpperCase() }}</div>
+                            <div class="weight-bar"><div class="weight-bar-fill" :class="weightBarClass" :style="{ width: Math.min(100, maxWeight > 0 ? (playerWeight / maxWeight) * 100 : 0) + '%' }"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PLAYER INVENTORY GRID -->
+                <div class="player-inventory" :class="{ 'centered-player-inventory': shouldCenterInventory }">
+                    <div class="item-grid">
+                        <div v-for="slot in totalSlots" :key="slot" class="item-slot" :data-slot="slot" :class="{ 'invalid-slot-highlight': errorSlot === slot }" v-tooltip.right-end="getTooltip(getItemInSlot(slot, 'player'))" @dblclick="getItemInSlot(slot, 'player') && useItem(getItemInSlot(slot, 'player'))" @mousedown="event => handleMouseDown(event, slot, 'player')">
+                            <div class="item-slot-key" v-if="slot <= 5"><p>{{ slot }}</p></div>
+                            <div class="item-slot-img" v-if="getItemInSlot(slot, 'player')">
+                                <img :src="resolveItemImage(getItemInSlot(slot, 'player').image)" alt="" @error="setMissingImage" />
+                            </div>
+                            <div class="item-slot-label" v-if="getItemInSlot(slot, 'player')"><p>{{ getItemInSlot(slot, 'player').label }}</p></div>
+                            <div class="item-slot-amount" v-if="getItemInSlot(slot, 'player')">
+                                <p>{{ formatItemAmount(getItemInSlot(slot, 'player')) }}</p>
+                            </div>
+                            <div class="item-slot-durability" v-if="getItemInSlot(slot, 'player')">
+                                <div class="item-slot-durability-fill"
+                                    v-if="getItemInSlot(slot, 'player').info && 'quality' in getItemInSlot(slot, 'player').info"
+                                    :style="{ width: (getItemInSlot(slot, 'player').info.quality / 100) * 100 + '%' }"
+                                    :class="{ 'high': getItemInSlot(slot, 'player').info.quality > 75, 'medium': getItemInSlot(slot, 'player').info.quality <= 75 && getItemInSlot(slot, 'player').info.quality > 25, 'low': getItemInSlot(slot, 'player').info.quality <= 25 }">
+                                </div>
+                                <div class="item-slot-durability-fill" v-else style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TRANSFER AMOUNT INPUT -->
+                <div class="input-container" v-if="!isOtherInventoryEmpty">
+                    <div class="input-caption">AMOUNT</div>
+                    <div class="input-wrapper">
+                        <input type="number" v-model="transferAmount" min="1" :placeholder="transferAmount === null ? 'amount' : ''" />
+                        <button @click="clearTransferAmount" class="clear-button" aria-label="Clear amount"><span class="rs-symbol" aria-hidden="true">×</span></button>
+                    </div>
+                </div>
+
+                <!-- OTHER INVENTORY HEADER -->
+                <div class="other-inventory-header" v-if="!isOtherInventoryEmpty">
+                    <div class="labels-container">
+                        <div class="inventory-label">
+                            <span class="inventory-icon1"><span class="rs-symbol" aria-hidden="true">◇</span></span>
+                            <p>{{ otherInventoryLabel }}</p>
+                        </div>
+                        <div class="current-weight">
+                            <div class="weight-copy"><span class="rs-symbol" aria-hidden="true">⚖</span> {{ rsWeightValue(otherInventoryWeight, 1) }} / {{ rsWeightValue(otherInventoryMaxWeight, 1) }} {{ rsWeightUnit().toUpperCase() }}</div>
+                            <div class="weight-bar"><div class="weight-bar-fill" :class="otherWeightBarClass" :style="{ width: Math.min(100, otherInventoryMaxWeight > 0 ? (otherInventoryWeight / otherInventoryMaxWeight) * 100 : 0) + '%' }"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OTHER INVENTORY GRID -->
+                <div class="other-inventory" v-if="!isOtherInventoryEmpty">
+                    <div class="item-grid">
+                        <div v-for="slot in otherInventorySlots" :key="slot" class="item-slot" :data-slot="slot" v-tooltip.right-end="getTooltip(getItemInSlot(slot, 'other'))" @mousedown="event => handleMouseDown(event, slot, 'other')" @dragover.prevent>
+                            <div class="item-slot-img" v-if="getItemInSlot(slot, 'other')">
+                                <img :src="resolveItemImage(getItemInSlot(slot, 'other').image)" alt="" @error="setMissingImage" />
+                            </div>
+                            <div class="item-slot-label" v-if="getItemInSlot(slot, 'other')"><p>{{ getItemInSlot(slot, 'other').label }}</p></div>
+                            <div class="item-slot-amount" v-if="getItemInSlot(slot, 'other')">
+                                <p>{{ formatItemAmount(getItemInSlot(slot, 'other')) }}</p>
+                            </div>
+                            <div v-if="isShopInventory && getItemInSlot(slot, 'other')" class="item-price">
+                                <p>${{ getItemInSlot(slot, 'other').price }}</p>
+                            </div>
+                            <div class="item-slot-durability" v-if="getItemInSlot(slot, 'other')">
+                                <div class="item-slot-durability-fill"
+                                    v-if="getItemInSlot(slot, 'other').info && 'quality' in getItemInSlot(slot, 'other').info"
+                                    :style="{ width: (getItemInSlot(slot, 'other').info.quality / 100) * 100 + '%' }"
+                                    :class="{ 'high': getItemInSlot(slot, 'other').info.quality > 75, 'medium': getItemInSlot(slot, 'other').info.quality <= 75 && getItemInSlot(slot, 'other').info.quality > 25, 'low': getItemInSlot(slot, 'other').info.quality <= 25 }">
+                                </div>
+                                <div class="item-slot-durability-fill" v-else style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rs-controls">
+                    <span><b>DOUBLE CLICK</b> USE</span>
+                    <span><b>RIGHT CLICK</b> ACTIONS / QUICK MOVE</span>
+                    <span><b>SHIFT</b> SPLIT STACK</span>
+                    <span><b>ESC</b> CLOSE</span>
+                </div>
+            </div>
+
+            <!-- HOTBAR -->
+            <div class="hotbar-container" v-if="showHotbar">
+                <div class="hotbar">
+                    <div v-for="slot in 5" :key="slot" class="item-slot">
+                        <div class="item-slot-key"><p>{{ slot }}</p></div>
+                        <div class="item-slot-img" v-if="getHotbarItemInSlot(slot)">
+                            <img :src="resolveItemImage(getHotbarItemInSlot(slot).image)" alt="" @error="setMissingImage" />
+                        </div>
+                        <div class="item-slot-amount" v-if="getHotbarItemInSlot(slot)">
+                            <p>{{ formatItemAmount(getHotbarItemInSlot(slot)) }}</p>
+                        </div>
+                        <div class="item-slot-durability" v-if="getHotbarItemInSlot(slot)">
+                            <div class="item-slot-durability-fill"
+                                v-if="getHotbarItemInSlot(slot).info && 'quality' in getHotbarItemInSlot(slot).info"
+                                :style="{ width: (getHotbarItemInSlot(slot).info.quality / 100) * 100 + '%' }"
+                                :class="{ 'high': getHotbarItemInSlot(slot).info.quality > 75, 'medium': getHotbarItemInSlot(slot).info.quality <= 75 && getHotbarItemInSlot(slot).info.quality > 25, 'low': getHotbarItemInSlot(slot).info.quality <= 25 }">
+                            </div>
+                            <div class="item-slot-durability-fill" v-else style="width: 0%"></div>
+                        </div>
+                        <div class="item-slot-label" v-if="getHotbarItemInSlot(slot)">
+                            <p>{{ getHotbarItemInSlot(slot).label }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOTIFICATION -->
+            <div class="notification-container" v-if="showNotification">
+                <div class="notification-slot">
+                    <div class="notification-title"><p>{{ notificationType }}</p></div>
+                    <div class="item-slot-img"><img :src="notificationImage" alt="" @error="setMissingImage" /></div>
+                    <div class="item-slot-amount"><p>x{{ notificationAmount }}</p></div>
+                    <div class="item-slot-label"><p>{{ notificationText }}</p></div>
+                </div>
+            </div>
+
+            <!-- REQUIRED ITEMS -->
+            <div class="required-item-container" v-if="showRequiredItems">
+                <div class="required-item">
+                    <div v-for="(item, index) in requiredItems" :key="index" class="item-slot">
+                        <div class="item-slot-img"><img :src="resolveItemImage(item.image)" alt="" @error="setMissingImage" /></div>
+                        <div class="item-slot-label"><p>{{ item.label }}</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REWORK WEAPON ATTACHMENT INSPECTION PANEL -->
+            <div class="attachment-panel-overlay" v-if="isAttachmentPanelOpen && selectedWeaponForPanel" @mousedown.stop @click.stop>
+                    <div class="attachment-panel rs-rework-attachment-panel">
+                        <div class="attachment-header">
+                            <h3>Weapon Inspection</h3>
+                            <button @click="closeAttachmentPanel" class="close-panel-button">&times;</button>
+                        </div>
+
+                        <div class="inspection-content">
+                            <div class="weapon-display-column">
+                                <div class="weapon-main-image">
+                                    <img :src="resolveItemImage(selectedWeaponForPanel.image)" :alt="selectedWeaponForPanel.label || selectedWeaponForPanel.name" @error="setMissingImage" />
+                                </div>
+                                <h4 class="weapon-title">{{ selectedWeaponForPanel.label || selectedWeaponForPanel.name }}</h4>
+                                <div class="weapon-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Serial No.</span>
+                                        <span class="stat-value">{{ (selectedWeaponForPanel.info && (selectedWeaponForPanel.info.serie || selectedWeaponForPanel.info.serial)) || 'N/A' }}</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Quality</span>
+                                        <div class="stat-bar-container">
+                                            <div class="stat-bar" :style="{ width: Math.max(0, Math.min(100, (selectedWeaponForPanel.info && selectedWeaponForPanel.info.quality) || 0)) + '%' }"></div>
+                                        </div>
+                                    </div>
+                                    <div class="stat-item" v-if="getWeaponTintLabel()">
+                                        <span class="stat-label">Tint</span>
+                                        <span class="stat-value">{{ getWeaponTintLabel() }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="attachment-slots-column">
+                                <h4 class="column-title">Attachment Slots</h4>
+                                <div class="slots-container">
+                                    <div class="attachment-slot-wrapper" v-for="slotDef in [
+                                            { type: 'muzzle', label: 'Muzzle' },
+                                            { type: 'flashlight', label: 'Flashlight' },
+                                            { type: 'grip', label: 'Grip' },
+                                            { type: 'barrel', label: 'Barrel' },
+                                            { type: 'optics', label: 'Optics' },
+                                            { type: 'magazine', label: 'Magazine' },
+                                            { type: 'skin', label: 'Skin / Tint' }
+                                        ]" :key="slotDef.type">
+                                        <div class="attachment-slot-box" :class="{ 'filled': getAttachmentBySlot(slotDef.type) }" @click="getAttachmentBySlot(slotDef.type) && removeAttachment(getAttachmentBySlot(slotDef.type))" v-tooltip.left-end="getAttachmentSlotTooltip(slotDef.type)">
+                                            <img v-if="getAttachmentBySlot(slotDef.type)" :src="getAttachmentImage(getAttachmentBySlot(slotDef.type))" @error="setMissingImage" />
+                                            <span v-else class="rs-symbol empty-slot-icon" aria-hidden="true">+</span>
+                                        </div>
+                                        <span class="slot-type-label">{{ getAttachmentBySlot(slotDef.type) ? (getAttachmentBySlot(slotDef.type).label || slotDef.label) : slotDef.label }}</span>
+                                    </div>
+                                </div>
+                                <div class="overflow-attachments" v-if="overflowAttachments.length > 0">
+                                    <h4 class="column-title">Other Attachments</h4>
+                                    <div class="slots-container">
+                                        <div class="attachment-slot-wrapper" v-for="att in overflowAttachments" :key="att.attachment">
+                                            <div class="attachment-slot-box filled" @click="removeAttachment(att)" v-tooltip.left-end="getAttachmentTooltip(att)">
+                                                <img :src="getAttachmentImage(att)" @error="setMissingImage" />
+                                            </div>
+                                            <span class="slot-type-label">{{ att.label || att.attachment }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="attachment-panel-note">Click a filled slot to remove that attachment.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- DRAGGED ITEM -->
+            <div v-if="draggedItem" class="item-slot" :class="{ 'dragged-item': draggedItem }" :style="{ top: dragY + 'px', left: dragX + 'px' }">
+                <div class="item-slot-img"><img :src="resolveItemImage(draggedItem.image)" alt="" @error="setMissingImage" /></div>
+                <div class="item-slot-amount"><p>{{ formatItemAmount(draggedItem) }}</p></div>
+                <div class="item-slot-label"><p>{{ draggedItem.label }}</p></div>
+            </div>
+
+            <!-- CONTEXT MENU -->
+            <ul v-if="showContextMenu" class="context-menu" :style="{ top: contextMenuPosition.top, left: contextMenuPosition.left }">
+                <li v-if="contextMenuItem.useable" @click="useItem(contextMenuItem)">
+                    <span class="rs-symbol" aria-hidden="true">↻</span>&nbsp; Use</li>
+                <li @mouseover="showSubmenu = true" @mouseleave="showSubmenu = false">
+                    <span class="rs-symbol" aria-hidden="true">→</span>&nbsp; Give
+                    <ul v-if="showSubmenu" class="submenu">
+                        <li @click="giveItem(contextMenuItem, 1)"><span class="rs-symbol" aria-hidden="true">1</span>&nbsp;Single</li>
+                        <li @click="giveItem(contextMenuItem, 'half')"><span class="rs-symbol" aria-hidden="true">½</span>&nbsp;Half</li>
+                        <li @click="giveItem(contextMenuItem, 'all')"><span class="rs-symbol" aria-hidden="true">≋</span>&nbsp;All</li>
+                    </ul>
+                </li>
+                <li @mouseover="showSubmenu = true" @mouseleave="showSubmenu = false">
+                    <span class="rs-symbol" aria-hidden="true">↓</span>&nbsp; Drop
+                    <ul v-if="showSubmenu" class="submenu">
+                        <li @click="dropItem(contextMenuItem, 1)"><span class="rs-symbol" aria-hidden="true">1</span>&nbsp;Single</li>
+                        <li @click="dropItem(contextMenuItem, 'half')"><span class="rs-symbol" aria-hidden="true">½</span>&nbsp;Half</li>
+                        <li @click="dropItem(contextMenuItem, 'all')"><span class="rs-symbol" aria-hidden="true">≋</span>&nbsp;All</li>
+                    </ul>
+                </li>
+                <li @click="splitAndPlaceItem(contextMenuItem, 'player')">
+                    <span class="rs-symbol" aria-hidden="true">⑂</span>&nbsp; Split</li>
+                <li v-if="String(contextMenuItem.name || '').toLowerCase().includes('weapon_')" @click="copySerial(contextMenuItem)">
+                    <span class="rs-symbol" aria-hidden="true">▣</span>&nbsp; Copy Serial</li>
+                <li v-if="String(contextMenuItem.name || '').toLowerCase().includes('weapon_')" @click="openWeaponAttachments(contextMenuItem)">
+                    <span class="rs-symbol" aria-hidden="true">⌁</span>&nbsp; Attachments</li>
+            </ul>
+        </div>
+
+    </body>
+</html>
