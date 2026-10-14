@@ -1,0 +1,25 @@
+-- Modified by RealitySucksRP on 2026-08-30.
+-- Change: every storefront is removed. RealitySucksRP serves shops from its
+-- own resources, and running both meant two competing shops on the same corner
+-- with different stock and different prices:
+--
+--   General, Liquor, YouTool, Medicine   -> rs-zombiemart (9 shops, 190 items)
+--   Ammunation                           -> rs-weaponshops (108 weapons)
+--   BlackMarketArms                      -> rs-blackmarket
+--   VendingMachineDrinks                 -> rs-zombiemart stocks the same drinks
+--   PoliceArmoury                        -> rs-weaponshops shop11
+--
+-- PoliceArmoury was kept here until rs-weaponshops gained job-restricted
+-- shops. It now ships the armoury as config shop11: same MRPD coords, same
+-- seven items, same grade-3 gate on the carbine, enforced server-side by that
+-- resource's own framework compatibility layer. Two armoury peds on one
+-- counter is the duplication this file was cleared to avoid, so the block is
+-- gone.
+--
+-- An empty table is intentional and valid: ox_inventory registers no shops of
+-- its own and simply has nothing to iterate.
+--
+-- The untouched original is beside this file as shops.lua.original.
+-- Based on ox_inventory 2.47.9; distributed under GPL-3.0.
+
+return {}
