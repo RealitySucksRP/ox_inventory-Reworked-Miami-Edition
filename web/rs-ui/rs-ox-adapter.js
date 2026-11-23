@@ -181,16 +181,30 @@
         return nativeComponentMap[joaat(nativeName)] || null;
     }
 
+    function formatNativeComponentLabel(raw) {
+        var text = String(raw || '');
+        if (!/^COMPONENT_/i.test(text)) return text;
+        return text
+            .replace(/^COMPONENT_/i, '')
+            .replace(/^AT_/i, '')
+            .replace(/_/g, ' ')
+            .toLowerCase()
+            .replace(/\b([a-z0-9]+)/g, function (m) {
+                return m.charAt(0).toUpperCase() + m.slice(1);
+            });
+    }
+
     function componentInfo(component) {
-        var def = itemRegistry[component] || {};
+        var resolvedName = itemRegistry[component] ? component : (itemForNativeComponent(component) || component);
+        var def = itemRegistry[resolvedName] || {};
         return {
-            component: component,
-            attachment: component,
-            label: def.label || component,
+            component: resolvedName,
+            attachment: resolvedName,
+            label: def.label || formatNativeComponentLabel(component),
             type: def.type || null,
             weight: Number(def.weight) || 0,
             description: componentDescription(def),
-            image: resolveOxImage(def.image, component)
+            image: resolveOxImage(def.image, resolvedName)
         };
     }
 

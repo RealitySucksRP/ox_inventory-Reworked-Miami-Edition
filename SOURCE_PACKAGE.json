@@ -1,9 +1,9 @@
 {
   "archive": "ox_inventory.zip",
-  "sha256": "ae9704477c60bc0a7fc490d84ae16ab47e398927ce27a5176221dd28bb2c0519",
+  "sha256": "9b7469e17248d219b98738ec5ee407d1ee354339f10be23c16ba75da9cfca72f",
   "resourceFolder": "ox_inventory",
-  "manifestVersion": "2.47.9-rs-miami.8-qbx-production-guard",
-  "importedOn": "2026-10-14",
-  "sourceFiles": 3342,
+  "manifestVersion": "2.47.9-rs-miami.11-thruster-items",
+  "importedOn": "2026-11-23",
+  "sourceFiles": 3413,
   "tebex": "https://reality-sucks-rp-webstore.tebex.io/package/7657131"
 }

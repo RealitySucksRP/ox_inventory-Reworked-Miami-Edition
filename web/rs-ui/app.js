@@ -1062,7 +1062,10 @@ const InventoryContainer = Vue.createApp({
             if (typeof window.__rsOxResolveComponentInfo === "function") {
                 return window.__rsOxResolveComponentInfo(component);
             }
-            return { component, attachment: component, label: component };
+            const label = /^COMPONENT_/i.test(component)
+                ? this.formatKey(component.replace(/^COMPONENT_/i, "").replace(/^AT_/i, "").toLowerCase())
+                : component;
+            return { component, attachment: component, label };
         },
         getItemDescription(item) {
             const metadataDescription = item && item.info && item.info.description;
@@ -1097,7 +1100,9 @@ const InventoryContainer = Vue.createApp({
             return text.length > maximum ? `${text.slice(0, maximum - 1)}…` : text;
         },
         hideTooltipMetadata(key, value) {
-            const normalized = String(key || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+            const rawKey = String(key || "");
+            const normalized = rawKey.replace(/[^a-z0-9]/gi, "").toLowerCase();
+            if (/^rsws_/i.test(rawKey) || normalized.startsWith("rsws")) return true;
             const privateKeys = new Set([
                 "description", "creationdate", "expirydate", "image", "imageurl",
                 "mugshot", "mugshoturl", "imagebase64", "photobase64", "portraitbase64", "badge"
@@ -1141,13 +1146,17 @@ const InventoryContainer = Vue.createApp({
                 if (key === "quality") label = "Condition";
                 const value = key === "quality"
                     ? `${Math.max(0, Math.min(100, Number(info[key]) || 0)).toFixed(0)}%`
-                    : this.formatTooltipValue(key, info[key]);
+                    : (key === "tint" && info.rsws_tint_label
+                        ? this.formatTooltipValue(key, info.rsws_tint_label)
+                        : this.formatTooltipValue(key, info[key]));
                 content += `<div class="tooltip-info"><span class="tooltip-info-key">${this.escapeHtml(label)}:</span> ${this.escapeHtml(value)}</div>`;
             });
 
-            const componentValues = Array.isArray(info.components)
+            const componentValues = Array.isArray(info.components) && info.components.length
                 ? info.components
-                : (Array.isArray(info.attachments) ? info.attachments : []);
+                : (Array.isArray(info.attachments) && info.attachments.length
+                    ? info.attachments
+                    : (Array.isArray(info.rsws_native_components) ? info.rsws_native_components : []));
             if (componentValues.length) {
                 const components = componentValues.map((raw) => this.resolveComponentInfo(raw)).filter(Boolean);
                 content += `<div class="tooltip-info tooltip-attachments"><span class="tooltip-info-key">Attachments:</span><div class="tooltip-attachment-list">`;
@@ -1165,7 +1174,8 @@ const InventoryContainer = Vue.createApp({
             return content;
         },
         formatKey(key) {
-            return key.replace(/_/g, " ").charAt(0).toUpperCase() + key.slice(1);
+            const spaced = String(key || "").replace(/_/g, " ").trim();
+            return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : "";
         },
         getCurrentServerTime() {
             if (!this.serverTime || !this.clientTimeOnSync) {

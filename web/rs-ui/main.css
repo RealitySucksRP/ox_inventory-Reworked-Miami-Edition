@@ -1170,7 +1170,8 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .custom-tooltip {
-    width: 240px;
+    width: 264px;
+    max-width: min(320px, 85vw);
     max-height: min(72vh, 620px);
     overflow-x: hidden;
     overflow-y: auto;
@@ -1531,18 +1532,26 @@ input[type='number']::-webkit-outer-spin-button {
 
 /* RS tooltip metadata / attachment clarity */
 .tooltip-info {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 6px;
-    align-items: start;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 6px;
+    row-gap: 2px;
+    align-items: baseline;
     margin: 4px 0;
     color: #d4cbd9;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 .tooltip-info-key {
     color: #8deaff;
     font-weight: 700;
+    flex-shrink: 0;
+}
+
+.tooltip-info-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .tooltip-description {
@@ -1560,7 +1569,8 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 .tooltip-attachments {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .tooltip-attachment-list {

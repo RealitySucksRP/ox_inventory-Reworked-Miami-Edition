@@ -10,7 +10,7 @@ game 'gta5'
 
 name 'ox_inventory'
 author 'Overextended; modified by RealitySucksRP'
-version '2.47.9-rs-miami.8-qbx-production-guard'
+version '2.47.9-rs-miami.11-thruster-items'
 description 'ox_inventory 2.47.9 RealitySucksRP Miami Edition with Qbox production security, persistence and transaction guards'
 
 dependencies {

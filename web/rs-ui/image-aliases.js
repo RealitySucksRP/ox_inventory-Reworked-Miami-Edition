@@ -9,6 +9,19 @@
     'use strict';
 
     window.__rsImageAliases = Object.freeze({
+        'acr_tubing_38.png': 'acr_tubing_38.webp',
+        'cap_dual_35_5.png': 'cap_dual_35_5.webp',
+        'cap_run_5.png': 'cap_run_5.webp',
+        'dual_run_capacitor.png': 'dual_run_capacitor.webp',
+        'filter_media_merv13.png': 'filter_media_merv13.webp',
+        'gas_valve_24v.png': 'gas_valve_24v.webp',
+        'lineset_38_78.png': 'lineset_38_78.webp',
+        'low_voltage_fuse.png': 'low_voltage_fuse.webp',
+        'transformer_40va.png': 'transformer_40va.webp',
+        'transformer_75va.png': 'transformer_75va.webp',
+        'two_pole_contactor.png': 'two_pole_contactor.webp',
+        'txv_410a_3ton.png': 'txv_410a_3ton.webp',
+        'whip_liquidtight.png': 'whip_liquidtight.webp',
         'weapon_battlerifle.png': 'WEAPON_HEAVYRIFLE.png',
         'weapon_snowlauncher.png': 'WEAPON_HOMINGLAUNCHER.png',
         'weapon_tacticalrifle.png': 'WEAPON_CARBINERIFLE.png',

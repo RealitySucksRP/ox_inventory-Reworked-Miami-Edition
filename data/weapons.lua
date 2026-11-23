@@ -1,3 +1,6 @@
+-- Weights are GRAMS, including per-round ammunition. These are gameplay carry
+-- weights; bulk-loaded launcher ammo must not turn a compact weapon into a
+-- hundred-pound item. Pounds are converted for display by the inventory UI.
 return {
 	Weapons = {
 		['WEAPON_BATTLERIFLE'] = {
@@ -77,7 +80,7 @@ return {
 
 		['WEAPON_BATTLEAXE'] = {
 			label = 'Battle Axe',
-			weight = 6500,
+			weight = 2500,
 			durability = 0.1,
 		},
 
@@ -339,14 +342,14 @@ return {
 
 		['WEAPON_HEAVYSNIPER'] = {
 			label = 'Heavy Sniper',
-			weight = 12700,
+			weight = 6000,
 			durability = 0.5,
 			ammoname = 'ammo-heavysniper'
 		},
 
 		['WEAPON_HEAVYSNIPER_MK2'] = {
 			label = 'Heavy Sniper MK2',
-			weight = 14000,
+			weight = 6500,
 			durability = 0.5,
 			ammoname = 'ammo-heavysniper'
 		},
@@ -385,7 +388,7 @@ return {
 
 		['WEAPON_MARKSMANRIFLE'] = {
 			label = 'Marksman Rifle',
-			weight = 7500,
+			weight = 4500,
 			durability = 0.4,
 			ammoname = 'ammo-sniper'
 		},
@@ -399,14 +402,14 @@ return {
 
 		['WEAPON_MG'] = {
 			label = 'Machine Gun',
-			weight = 9000,
+			weight = 8000,
 			durability = 0.02,
 			ammoname = 'ammo-rifle2'
 		},
 
 		['WEAPON_MINIGUN'] = {
 			label = 'Minigun',
-			weight = 38500,
+			weight = 10000,
 			durability = 0.1,
 			ammoname = 'ammo-rifle2'
 		},
@@ -447,7 +450,7 @@ return {
 
 		['WEAPON_NAVYREVOLVER'] = {
 			label = 'Navy Revolver',
-			weight = 4000,
+			weight = 1200,
 			durability = 0.2,
 			ammoname = 'ammo-44'
 		},
@@ -1804,7 +1807,7 @@ return {
 
 		['ammo-50'] = {
 			label = '.50 AE',
-			weight = 45,
+			weight = 20,
 		},
 
 		['ammo-9'] = {
@@ -1814,22 +1817,22 @@ return {
 
 		['ammo-firework'] = {
 			label = 'Firework',
-			weight = 200,
+			weight = 15,
 		},
 
 		['ammo-flare'] = {
 			label = 'Flare round',
-			weight = 38,
+			weight = 15,
 		},
 
 		['ammo-grenade'] = {
 			label = '40mm Explosive',
-			weight = 400,
+			weight = 25,
 		},
 
 		['ammo-heavysniper'] = {
 			label = '.50 BMG',
-			weight = 51,
+			weight = 25,
 		},
 
 		['ammo-laser'] = {
@@ -1839,12 +1842,12 @@ return {
 
 		['ammo-musket'] = {
 			label = '.50 Ball',
-			weight = 38,
+			weight = 20,
 		},
 
 		['ammo-railgun'] = {
 			label = 'Railgun charge',
-			weight = 150,
+			weight = 20,
 		},
 
 		['ammo-rifle'] = {
@@ -1859,12 +1862,12 @@ return {
 
 		['ammo-rocket'] = {
 			label = 'Rocket',
-			weight = 500,
+			weight = 30,
 		},
 
 		['ammo-shotgun'] = {
 			label = '12 Gauge',
-			weight = 38,
+			weight = 20,
 		},
 
 		['ammo-sniper'] = {
@@ -1874,7 +1877,7 @@ return {
 
 		['ammo-emp'] = {
 			label = 'EMP round',
-			weight = 400,
+			weight = 12,
 		},
 	}
 }

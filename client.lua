@@ -60,7 +60,16 @@ client.player:set('invBusy', true)
 client.player:set('invHotkeys', false)
 client.player:set('canUseWeapons', false)
 
+local function builderInputBlocked()
+    local state = LocalPlayer and LocalPlayer.state
+    return state and (state['rsBuilder:rs-worldbuilder'] == true
+        or state['rsBuilder:rs-racebuilder'] == true
+        or state['rsBuilder:rs-storebuilder'] == true
+        or state['rsBuilder:rs-trap_boyz'] == true) or false
+end
+
 local function canOpenInventory()
+    if builderInputBlocked() then return false end
     if not PlayerData.loaded then
         return shared.info('cannot open inventory', '(player inventory has not loaded)')
     end
@@ -268,6 +277,13 @@ function client.openInventory(inv, data)
         left, right, accessError = lib.callback.await('ox_inventory:openInventory', false, inv, data)
     end
 
+    -- A builder may open while the inventory's server callback is awaiting.
+    -- Abandon that response without taking focus away from the editor.
+    if builderInputBlocked() then
+        if left then TriggerServerEvent('ox_inventory:closeInventory') end
+        return false
+    end
+
     if accessError then
         return lib.notify({ id = accessError, type = 'error', description = locale(accessError) })
     end
@@ -441,6 +457,7 @@ lib.callback.register('ox_inventory:usingItem', function(data, noAnim)
 end)
 
 local function canUseItem(isAmmo)
+    if builderInputBlocked() then return false end
 	local ped = cache.ped
 
 	return not usingItem
@@ -830,6 +847,7 @@ local function registerCommands()
 		description = locale('open_player_inventory'),
 		defaultKey = client.keys[1],
 		onPressed = function()
+            if builderInputBlocked() then return end
 			if invOpen then
 				return client.closeInventory()
 			end
@@ -867,6 +885,7 @@ local function registerCommands()
 		description = locale('open_secondary_inventory'),
 		defaultKey = client.keys[2],
 		onPressed = function(self)
+            if builderInputBlocked() then return end
             if primary:getCurrentKey() == self:getCurrentKey() then
                 return warn(("secondary inventory keybind '%s' disabled (keybind cannot match primary inventory keybind)"):format(self:getCurrentKey()))
             end
@@ -931,24 +950,20 @@ local function registerCommands()
 		onPressed = reloadWeapon
 	})
 
-	-- RS: use a distinct command for the gamepad default. Existing FiveM profiles
-	-- remember the original keyboard-only reloadweapon mapping and can ignore a
-	-- secondary default added to that same command. A new command is registered
-	-- for every profile while still using the authoritative ox reload path.
-	lib.addKeybind({
-		name = 'reloadweapon_pad',
-		description = ('%s (Controller)'):format(locale('reload_weapon')),
-		defaultMapper = 'PAD_DIGITALBUTTONANY',
-		defaultKey = 'RRIGHT_INDEX', -- Xbox B / PlayStation Circle
-		onPressed = reloadWeapon
-	})
+	-- Controller reload is owned by the native INPUT_RELOAD fallback in the
+	-- equipped-weapon tick below. Do not register a second PAD_DIGITALBUTTONANY
+	-- command here: rapid analog LT aim transitions can be reported through that
+	-- broad mapper on some Xbox/FiveM profiles and incorrectly call reloadWeapon.
+	-- Keyboard R remains user-remappable through the keybind above; Xbox B /
+	-- PlayStation Circle remains handled by control 45 (and aimed vehicle control
+	-- 80) through the same authoritative ammo transaction.
 
 	lib.addKeybind({
 		name = 'hotbar',
 		description = locale('disable_hotbar'),
 		defaultKey = client.keys[3],
 		onPressed = function()
-			if EnableWeaponWheel or not invHotkeys or IsNuiFocused() or lib.progressActive() then return end
+			if builderInputBlocked() or EnableWeaponWheel or not invHotkeys or IsNuiFocused() or lib.progressActive() then return end
 			SendNUIMessage({ action = 'toggleHotbar' })
 		end
 	})
@@ -959,7 +974,7 @@ local function registerCommands()
 			description = locale('use_hotbar', i),
 			defaultKey = tostring(i),
 			onPressed = function()
-				if invOpen or EnableWeaponWheel or not invHotkeys or IsNuiFocused() then return end
+				if builderInputBlocked() or invOpen or EnableWeaponWheel or not invHotkeys or IsNuiFocused() then return end
 				useSlot(i)
 			end
 		})

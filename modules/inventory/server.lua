@@ -1829,7 +1829,7 @@ exports('CanSwapItem', Inventory.CanSwapItem)
 ---@param metadata { [string]: any }
 ---@param slot number
 RegisterServerEvent('ox_inventory:removeItem', function(name, count, metadata, slot)
-	if type(name) ~= 'string' or type(count) ~= 'number' or count ~= count or count <= 0 or count > 1000000 then return end
+	if type(name) ~= 'string' or type(count) ~= 'number' or count ~= count or count <= 0 or count > 2147483647 then return end
 	if metadata ~= nil and type(metadata) ~= 'table' and type(metadata) ~= 'string' then return end
 	if slot ~= nil and (type(slot) ~= 'number' or slot ~= slot or slot % 1 ~= 0 or slot < 1 or slot > 100000) then return end
 
@@ -2130,7 +2130,7 @@ lib.callback.register('ox_inventory:swapItems', function(source, data)
 		or type(data.count) ~= 'number'
 		or data.count ~= data.count
 		or data.count <= 0
-		or data.count > 1000000 then
+		or data.count > 2147483647 then
 		Utils.LogExploit(source, 'swapItems', 'Triggered event with malformed data', true)
 		return
 	end
@@ -3174,7 +3174,7 @@ end)
 local function giveItem(playerId, slot, target, count)
 	if type(playerId) ~= 'number' or type(target) ~= 'number' or target ~= target or target % 1 ~= 0 or target < 1 then return end
 	if type(slot) ~= 'number' or slot ~= slot or slot % 1 ~= 0 or slot < 1 or slot > 100000 then return end
-	if count ~= nil and (type(count) ~= 'number' or count ~= count or count <= 0 or count > 1000000) then return end
+	if count ~= nil and (type(count) ~= 'number' or count ~= count or count <= 0 or count > 2147483647) then return end
 	count = math.max(1, math.floor(count or 1))
 
 	local fromInventory = Inventory(playerId)
